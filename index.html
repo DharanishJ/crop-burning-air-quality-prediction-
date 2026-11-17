@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AgriSmoke AI: Crop-Burning and Urban Air Quality Prediction System for Delhi-NCR and the Indo-Gangetic Plains. Standalone local simulation platform.">
+    <title>AgriSmoke AI | Crop-Burning & Urban Air Quality Prediction System</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Site Header -->
+        <header class="site-header">
+            <div class="header-top">
+                <div class="brand-wrapper">
+                    <div class="brand-icon" aria-hidden="true">🔥</div>
+                    <div class="brand-titles">
+                        <h1>AgriSmoke AI &bull; Urban Air Quality Prediction</h1>
+                        <div class="tagline">
+                            <span>Indo-Gangetic Airshed (Punjab, Haryana &amp; Delhi-NCR)</span>
+                            <span class="status-pill demo"><span class="pulse-dot"></span> Demonstration AI Mode</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#94a3b8;cursor:pointer;">
+                        <input type="checkbox" id="toggle-live-sim" style="accent-color:#ff3d00;">
+                        <span>Simulate Micro-Variations</span>
+                    </label>
+                    <button class="btn btn-sm" id="btn-export-csv" title="Download diagnostic data report in CSV format">
+                        📊 Export CSV
+                    </button>
+                    <button class="btn btn-sm btn-primary" id="btn-print-report" title="Print or save PDF summary briefing">
+                        🖨️ Print Briefing
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mandatory Demonstration Status & API Notice Banner -->
+            <div class="demo-banner">
+                <div class="demo-banner-content">
+                    <strong>⚠️ Standalone Local Simulation Mode Active</strong>
+                    <p>Live satellite telemetry (NASA VIIRS/MODIS) and CPCB CAAQMS sensor APIs are operating in local demonstration mode. Predictions are generated via calibrated Gaussian plume atmospheric dispersion equations and empirical regression models.</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Active Threshold Trigger Emergency Banner -->
+        <div id="active-alert-banner" class="alert-trigger-banner" role="alert">
+            <div class="alert-icon">🚨</div>
+            <div class="alert-text" id="banner-alert-msg">
+                CRITICAL THRESHOLD TRIGGERED: Current predicted AQI exceeds your configured emergency threshold.
+            </div>
+            <button class="btn btn-sm" id="btn-test-alert-sound">🔔 Sound Tone</button>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs" aria-label="Main Navigation">
+            <button class="nav-tab-btn active" data-tab="dashboard">📊 Executive Dashboard</button>
+            <button class="nav-tab-btn" data-tab="map">🗺️ Geospatial Fire &amp; Smoke Map</button>
+            <button class="nav-tab-btn" data-tab="calculator">🧮 AI Prediction &amp; Scenario Engine</button>
+            <button class="nav-tab-btn" data-tab="grap">🚨 GRAP Stages &amp; Early Warnings</button>
+            <button class="nav-tab-btn" data-tab="mitigation">🌱 Mitigation &amp; Policy Simulator</button>
+            <button class="nav-tab-btn" data-tab="transparency">ℹ️ Methodology &amp; CPCB Scale</button>
+        </nav>
+
+        <!-- =========================================================================
+             TAB 1: Executive Dashboard
+             ========================================================================= -->
+        <section id="tab-dashboard" class="tab-panel active">
+            <!-- Key Performance Indicators (KPIs) -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">
+                        <span>Delhi-NCR Composite AQI</span>
+                        <span id="kpi-grap-badge" class="badge grap-badge">GRAP Stage III</span>
+                    </div>
+                    <div class="kpi-value-row">
+                        <div id="kpi-aqi-value" class="kpi-value" style="color:var(--cpcb-verypoor)">382</div>
+                    </div>
+                    <div class="kpi-subtext">
+                        Status: <strong id="kpi-aqi-category" class="badge" style="background:rgba(255,61,0,0.2);color:#ff3d00;">Very Poor</strong>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-label">
+                        <span>Parali Smoke Contribution</span>
+                        <span class="badge" style="background:rgba(255,87,34,0.15);color:#ff5722">Source Apportionment</span>
+                    </div>
+                    <div class="kpi-value-row">
+                        <div id="kpi-parali-pct" class="kpi-value" style="color:#ff7043">34.6%</div>
+                    </div>
+                    <div class="kpi-subtext">Fraction of total urban PM2.5 from stubble fires</div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-label">
+                        <span>Active Farm Fires</span>
+                        <span class="badge" style="background:rgba(255,171,0,0.15);color:#ffab00">Punjab &amp; Haryana</span>
+                    </div>
+                    <div class="kpi-value-row">
+                        <div id="kpi-active-fires" class="kpi-value" style="color:#ff9100">1,684</div>
+                    </div>
+                    <div class="kpi-subtext">Thermal anomalies detected in last 24h cycle</div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-label">
+                        <span>Dominant Fine Particulate</span>
+                        <span class="badge" style="background:rgba(0,229,255,0.15);color:#00e5ff">PM2.5 / PM10</span>
+                    </div>
+                    <div class="kpi-value-row">
+                        <div id="kpi-pm25-val" class="kpi-value" style="font-size:28px;color:#ffffff">236.4 µg/m³</div>
+                    </div>
+                    <div class="kpi-subtext">PM10: <span id="kpi-pm10-val">388.2 µg/m³</span> (WHO safe limit: 15)</div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-label">
+                        <span>Airshed Vulnerability</span>
+                        <span class="badge" style="background:rgba(213,0,0,0.15);color:#d50000">Composite Risk</span>
+                    </div>
+                    <div class="kpi-value-row">
+                        <div id="kpi-airshed-score" class="kpi-value" style="color:#ff3d00">84/100</div>
+                    </div>
+                    <div class="kpi-subtext">Transport lag: <span id="kpi-transport-lag">~18.5 hrs</span> via NW winds</div>
+                </div>
+            </div>
+
+            <!-- Dashboard Visualizations Grid -->
+            <div class="dashboard-grid">
+                <!-- Left Column: Forecast Curve & Source Donut -->
+                <div style="display:flex;flex-direction:column;gap:20px;">
+                    <!-- 24-Hour Diurnal Forecast -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title">📈 24-Hour Diurnal AQI &amp; Stubble Dispersion Curve</h2>
+                                <p class="card-subtitle">Projected hourly air quality based on nocturnal inversion &amp; wind transport</p>
+                            </div>
+                            <span class="badge" style="background:rgba(255,255,255,0.06);color:#cbd5e1">Hourly Simulation</span>
+                        </div>
+                        <div id="chart-diurnal-forecast" style="height:240px;width:100%;"></div>
+                        <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:#94a3b8;">
+                            <span>🌑 Low Boundary Layer (02:00 - 06:00): Severe Trapping</span>
+                            <span>☀️ Solar Mixing (13:00 - 16:00): Dispersion Window</span>
+                        </div>
+                    </div>
+
+                    <!-- 7-Day Trend Comparison -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">📅 7-Day Stubble Fire Trajectory vs Delhi AQI</h3>
+                                <p class="card-subtitle">Correlation between Punjab/Haryana fires (bars) and capital AQI (cyan line)</p>
+                            </div>
+                        </div>
+                        <div id="chart-weekly-trend" style="height:230px;width:100%;"></div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Speedometer, Source Donut & District Ranking -->
+                <div style="display:flex;flex-direction:column;gap:20px;">
+                    <!-- Speedometer Radial Gauge -->
+                    <div class="card" style="text-align:center;">
+                        <div class="card-header">
+                            <h3 class="card-title" style="margin:0 auto;">🎯 Real-Time AQI Gauge</h3>
+                        </div>
+                        <div id="gauge-aqi-speedometer" style="height:170px;margin-bottom:8px;"></div>
+                        <p style="font-size:12px;color:#cbd5e1;">CPCB Standard: <strong>0 - 500 Scale</strong></p>
+                    </div>
+
+                    <!-- Source Apportionment Donut -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">🔬 Urban Airshed Source Apportionment</h3>
+                                <p class="card-subtitle">SAFAR dynamical source decomposition estimate</p>
+                            </div>
+                        </div>
+                        <div id="chart-source-donut" style="min-height:220px;"></div>
+                    </div>
+
+                    <!-- District Fire Ranking -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3 class="card-title">🔥 Top High-Burning Districts</h3>
+                                <p class="card-subtitle">Active thermal fire anomaly counts</p>
+                            </div>
+                        </div>
+                        <div id="chart-district-bars"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Citizen Health Advisory Row -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">🩺 CPCB &amp; Public Health Action Advisory Matrix</h3>
+                    <span class="badge" style="background:rgba(0,229,255,0.1);color:#00e5ff">Clinical Guidelines</span>
+                </div>
+                <div class="advisory-grid">
+                    <div class="advisory-box">
+                        <div class="advisory-box-title">👥 General Population</div>
+                        <p class="advisory-box-text" id="advisory-general">
+                            Prolonged exposure may cause respiratory discomfort. Limit strenuous outdoor morning and evening jogging.
+                        </p>
+                    </div>
+                    <div class="advisory-box">
+                        <div class="advisory-box-title">🫁 Sensitive Demographics (Children &amp; Asthmatics)</div>
+                        <p class="advisory-box-text" id="advisory-sensitive">
+                            Keep rescue bronchodilators accessible. Avoid all outdoor physical activity. Keep room windows sealed during nocturnal hours.
+                        </p>
+                    </div>
+                    <div class="advisory-box">
+                        <div class="advisory-box-title">👷 Outdoor Workers &amp; Commuters</div>
+                        <p class="advisory-box-text" id="advisory-outdoor">
+                            Wear certified N95 / FFP2 particulate respirator masks. Avoid prolonged idling at high-density traffic junctions.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================================
+             TAB 2: Geospatial Plume & Fire Map
+             ========================================================================= -->
+        <section id="tab-map" class="tab-panel">
+            <div class="card" style="padding:0;overflow:hidden;">
+                <div class="map-panel" id="map-container">
+                    <!-- Layer Toggles Toolbar -->
+                    <div class="map-toolbar">
+                        <button class="layer-toggle-btn active" data-map-layer="fires">🔥 Thermal Fires</button>
+                        <button class="layer-toggle-btn active" data-map-layer="plumeParticles">💨 Smoke Plume Particles</button>
+                        <button class="layer-toggle-btn active" data-map-layer="windVectors">🧭 Wind Streamlines</button>
+                        <button class="layer-toggle-btn active" data-map-layer="stations">📡 Urban AQI Stations</button>
+                        <button class="layer-toggle-btn active" data-map-layer="boundaries">🗺️ Regional Boundaries</button>
+                    </div>
+
+                    <!-- Interactive Geospatial Canvas -->
+                    <canvas id="geospatial-canvas" style="display:block;width:100%;height:580px;"></canvas>
+
+                    <!-- Map Zoom / Reset Controls -->
+                    <div class="map-controls-group">
+                        <button class="map-control-btn" id="map-zoom-in" title="Zoom in">+</button>
+                        <button class="map-control-btn" id="map-zoom-out" title="Zoom out">&minus;</button>
+                        <button class="map-control-btn" id="map-reset" title="Reset view">⟲</button>
+                    </div>
+
+                    <!-- Floating Interactive Hover Tooltip -->
+                    <div id="map-tooltip" class="floating-tooltip"></div>
+                </div>
+
+                <!-- Map Info Footer Bar -->
+                <div style="background:rgba(13,21,39,0.9);padding:14px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;border-top:1px solid var(--border-color);">
+                    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                        <span style="display:flex;align-items:center;gap:6px;">
+                            <span style="width:10px;height:10px;border-radius:50%;background:#ff3d00;"></span>
+                            <span>Active Fire Radiative Cluster</span>
+                        </span>
+                        <span style="display:flex;align-items:center;gap:6px;">
+                            <span style="width:10px;height:10px;border-radius:50%;background:#00e5ff;"></span>
+                            <span>Monitoring Station</span>
+                        </span>
+                        <span style="display:flex;align-items:center;gap:6px;">
+                            <span style="width:18px;height:4px;background:#40c4ff;border-radius:2px;"></span>
+                            <span>Yamuna River Basin</span>
+                        </span>
+                    </div>
+                    <div style="color:#94a3b8;">
+                        🖱️ <em>Click and drag to pan &bull; Scroll to zoom &bull; Click any fire or station to inspect details</em>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================================
+             TAB 3: AI Prediction & Scenario Engine
+             ========================================================================= -->
+        <section id="tab-calculator" class="tab-panel">
+            <!-- Scenario Presets Bar -->
+            <div class="card" style="margin-bottom:20px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                    <div>
+                        <h2 class="card-title" style="font-size:14px;">⚡ Quick Scenario Benchmarks &amp; Historical Presets</h2>
+                        <p class="card-subtitle">Load calibrated atmospheric &amp; harvesting conditions with one click</p>
+                    </div>
+                </div>
+                <div class="presets-bar" style="margin-bottom:0;padding-bottom:0;border:none;">
+                    <button class="btn btn-sm btn-primary" data-preset="peakBurning">🔥 Peak Burning &amp; Low Inversion (Nov)</button>
+                    <button class="btn btn-sm" data-preset="favorableWind">💨 Favorable Easterly Wind Shift</button>
+                    <button class="btn btn-sm" data-preset="aggressiveMitigation">🌱 Aggressive In-Situ Mitigation</button>
+                    <button class="btn btn-sm" data-preset="monsoonClean">🌧️ Clean Baseline (Post-Rain)</button>
+                </div>
+            </div>
+
+            <!-- Two-Column Calculator: Sliders vs Results -->
+            <div class="calculator-grid">
+                <!-- Left: Control Sliders -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">🎛️ Atmospheric &amp; Agricultural Parameter Inputs</h3>
+                        <span class="badge" style="background:rgba(255,255,255,0.06);color:#cbd5e1">Interactive Sliders</span>
+                    </div>
+
+                    <!-- Slider 1: Active Farm Fires -->
+                    <div class="slider-group">
+                        <div class="slider-label-row">
+                            <span class="slider-label-title">🔥 Active Farm Fires (Punjab &amp; Haryana)</span>
+                            <span class="slider-value-badge" id="val-fire-count">1,684</span>
+                        </div>
+                        <input type="range" id="input-fire-count" min="0" max="5000" step="50" value="1684">
+                        <div class="slider-desc">Cumulative satellite thermal anomaly detections in the upwind harvest corridor.</div>
+                    </div>
+
+                    <!-- Slider 2: Wind Speed -->
+                    <div class="slider-group">
+                        <div class="slider-label-row">
+                            <span class="slider-label-title">💨 Transport Wind Speed (km/h)</span>
+                            <span class="slider-value-badge" id="val-wind-speed">11.5 km/h</span>
+                        </div>
+                        <input type="range" id="input-wind-speed" min="2" max="35" step="0.5" value="11.5">
+                        <div class="slider-desc">Speeds between 10-18 km/h optimize long-range smoke transport to Delhi without excessive dilution.</div>
+                    </div>
+
+                    <!-- Slider 3: Wind Direction -->
+                    <div class="slider-group">
+                        <div class="slider-label-row">
+                            <span class="slider-label-title">🧭 Wind Direction Angle (Bearing)</span>
+                            <span class="slider-value-badge" id="val-wind-dir">305° (NW)</span>
+                        </div>
+                        <input type="range" id="input-wind-dir" min="0" max="360" step="5" value="305">
+                        <div class="slider-desc">300°–325° (North-West) directly channels agricultural plumes straight down the Yamuna corridor into NCR.</div>
+                    </div>
+
+                    <!-- Slider 4: Planetary Boundary Layer Height -->
+                    <div class="slider-group">
+                        <div class="slider-label-row">
+                            <span class="slider-label-title">🌡️ Planetary Boundary Layer (PBL Mixing Height)</span>
+                            <span class="slider-value-badge" id="val-pbl-height">480 m</span>
+                        </div>
+                        <input type="range" id="input-pbl-height" min="150" max="1500" step="25" value="480">
+                        <div class="slider-desc">Nocturnal winter temperature inversion squashes the mixing volume down to 180–300m, concentrating toxic smoke.</div>
+                    </div>
+
+                    <!-- Slider 5: Urban Baseline Emissions -->
+                    <div class="slider-group">
+                        <div class="slider-label-row">
+                            <span class="slider-label-title">🚗 Delhi Internal Baseline AQI (Vehicles &amp; Dust)</span>
+                            <span class="slider-value-badge" id="val-urban-base">180 AQI</span>
+                        </div>
+                        <input type="range" id="input-urban-base" min="40" max="300" step="10" value="180">
+                        <div class="slider-desc">Base city pollution load from vehicular traffic, construction dust, and local waste burning.</div>
+                    </div>
+
+                    <!-- Slider 6: Bio-Decomposer Adoption -->
+                    <div class="slider-group">
+                        <div class="slider-label-row">
+                            <span class="slider-label-title">🧪 Pusa Bio-Decomposer Chemical Spraying Adoption</span>
+                            <span class="slider-value-badge" id="val-bio-decomposer">25%</span>
+                        </div>
+                        <input type="range" id="input-bio-decomposer" min="0" max="100" step="5" value="25">
+                        <div class="slider-desc">Enzymatic fungal microbial consortium accelerating paddy stubble decomposition in-situ.</div>
+                    </div>
+
+                    <!-- Slider 7: Happy Seeder Adoption -->
+                    <div class="slider-group">
+                        <div class="slider-label-row">
+                            <span class="slider-label-title">🚜 In-Situ Machinery (Happy Seeder / Super SMS / Baler)</span>
+                            <span class="slider-value-badge" id="val-happy-seeder">30%</span>
+                        </div>
+                        <input type="range" id="input-happy-seeder" min="0" max="100" step="5" value="30">
+                        <div class="slider-desc">Tractor-mounted machinery that sows wheat seeds directly into paddy stubble without needing burning.</div>
+                    </div>
+                </div>
+
+                <!-- Right: Model Output Card -->
+                <div class="results-card">
+                    <div class="card-header" style="margin-bottom:12px;">
+                        <h3 class="card-title" style="color:#ffffff;">🎯 Calibrated Model Prediction Output</h3>
+                        <span class="badge" style="background:rgba(0,229,255,0.15);color:#00e5ff">Deterministic AI</span>
+                    </div>
+
+                    <div class="calc-kpi-highlight">
+                        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Predicted 24h Composite Delhi AQI</div>
+                        <div id="calc-res-aqi" class="calc-kpi-num" style="color:var(--cpcb-verypoor);">382</div>
+                        <div id="calc-res-category" class="calc-kpi-tier" style="color:var(--cpcb-verypoor);">Very Poor (Stage II)</div>
+                    </div>
+
+                    <div class="results-breakdown-list">
+                        <div class="result-row">
+                            <span class="lbl">Total Fine Particulate (PM2.5)</span>
+                            <span class="val" id="calc-res-pm25">236.4 µg/m³</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="lbl">Stubble Smoke PM2.5 Influx</span>
+                            <span class="val" id="calc-res-stubble-pm25" style="color:#ff7043;">+82.5 µg/m³</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="lbl">Parali Smoke Contribution %</span>
+                            <span class="val" id="calc-res-parali-pct" style="color:#ff7043;">34.6%</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="lbl">Wind Vector Alignment Factor</span>
+                            <span class="val" id="calc-res-dir-factor">94%</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="lbl">Boundary Layer Trapping Multiplier</span>
+                            <span class="val" id="calc-res-inversion">1.46x</span>
+                        </div>
+                        <div class="result-row" style="background:rgba(0,230,118,0.08);padding:8px;border-radius:4px;border:1px solid rgba(0,230,118,0.2);">
+                            <span class="lbl" style="color:#00e676;">Potential AQI Reduction via 50% More Mitigation</span>
+                            <span class="val" id="calc-res-mitigation-drop" style="color:#00e676;">-48 AQI points</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:20px;padding:12px;background:rgba(0,0,0,0.3);border-radius:var(--radius-sm);font-size:11px;color:#94a3b8;line-height:1.5;">
+                        <strong>Physical Modeling Principles:</strong> Incorporates empirical Gaussian plume transport, wind directional alignment cosine exponents, boundary-layer volume dilution ($C \propto 1/H_{PBL}$), and standard Central Pollution Control Board (CPCB) India breakpoint equations.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================================
+             TAB 4: GRAP Stages & Early Warnings
+             ========================================================================= -->
+        <section id="tab-grap" class="tab-panel">
+            <!-- Custom Emergency Threshold Configuration -->
+            <div class="card" style="margin-bottom:20px;">
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">⚙️ Configure Custom Emergency Alert Thresholds</h2>
+                        <p class="card-subtitle">Set safety triggers to receive automated visual banners and synthesizer chimes</p>
+                    </div>
+                </div>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">
+                    <div>
+                        <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px;">Alert when AQI Exceeds:</label>
+                        <input type="number" id="thresh-aqi-input" value="400" min="100" max="800" style="background:#0c1322;border:1px solid var(--border-color);color:#ffffff;padding:8px 12px;border-radius:var(--radius-sm);width:120px;font-family:monospace;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px;">Alert when Active Fires Exceed:</label>
+                        <input type="number" id="thresh-fires-input" value="2000" min="200" max="6000" style="background:#0c1322;border:1px solid var(--border-color);color:#ffffff;padding:8px 12px;border-radius:var(--radius-sm);width:120px;font-family:monospace;">
+                    </div>
+                    <button class="btn btn-primary" id="btn-save-threshold">💾 Save Thresholds</button>
+                    <button class="btn" id="btn-test-alert-sound-tab">🔔 Test Web Audio Chime</button>
+                </div>
+            </div>
+
+            <!-- Commission for Air Quality Management (CAQM) GRAP Stages -->
+            <h3 style="font-size:16px;margin-bottom:12px;color:#f8fafc;">🏛️ Graded Response Action Plan (GRAP) Matrix</h3>
+            <div class="grap-matrix-grid">
+                <!-- Stage I -->
+                <div class="grap-stage-card">
+                    <div class="grap-stage-title" style="color:#ff9100;">Stage I: Poor</div>
+                    <div class="grap-stage-desc">AQI 201 – 300 (Moderate Health Impact)</div>
+                    <ul class="grap-actions-list">
+                        <li>Strict dust control at construction sites > 500 sq.m</li>
+                        <li>Mechanized sweeping and water sprinkling on roads</li>
+                        <li>Crackdown on visibly polluting and non-destined vehicles</li>
+                        <li>Ban on open municipal waste burning</li>
+                    </ul>
+                </div>
+
+                <!-- Stage II -->
+                <div class="grap-stage-card active-stage">
+                    <span class="badge grap-stage-badge" style="background:#ff9100;color:#000000;font-weight:700;">ACTIVE NOW</span>
+                    <div class="grap-stage-title" style="color:#ff3d00;">Stage II: Very Poor</div>
+                    <div class="grap-stage-desc">AQI 301 – 400 (Severe Respiratory Impact)</div>
+                    <ul class="grap-actions-list">
+                        <li>Daily water sprinkling with dust suppressants</li>
+                        <li>Differential parking fees to discourage personal vehicles</li>
+                        <li>Augmentation of Metro and electric bus frequencies</li>
+                        <li>Strict prohibition on diesel generator (DG) usage</li>
+                    </ul>
+                </div>
+
+                <!-- Stage III -->
+                <div class="grap-stage-card">
+                    <div class="grap-stage-title" style="color:#d50000;">Stage III: Severe</div>
+                    <div class="grap-stage-desc">AQI 401 – 450 (High Vulnerability Warning)</div>
+                    <ul class="grap-actions-list">
+                        <li>Complete ban on non-essential construction and demolition</li>
+                        <li>Ban on BS-III petrol and BS-IV diesel 4-wheelers in NCR</li>
+                        <li>Closure of stone crushers and brick kilns</li>
+                        <li>Discontinuation of physical school classes up to Class V</li>
+                    </ul>
+                </div>
+
+                <!-- Stage IV -->
+                <div class="grap-stage-card">
+                    <div class="grap-stage-title" style="color:#ba68c8;">Stage IV: Severe+ / Emergency</div>
+                    <div class="grap-stage-desc">AQI > 450 (Public Health Emergency)</div>
+                    <ul class="grap-actions-list">
+                        <li>Ban on entry of non-electric/non-CNG commercial trucks</li>
+                        <li>Closure of all commercial and public construction projects</li>
+                        <li>Online mode for educational institutions (Classes VI - IX, XI)</li>
+                        <li>Mandatory 50% work-from-home policy across public &amp; private sectors</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Active Early Warning Alert Feed -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">📡 Live Automated Early Warning Dispatch Stream</h3>
+                        <p class="card-subtitle">Real-time alerts generated from satellite thermal detections &amp; meteorological forecasts</p>
+                    </div>
+                </div>
+                <div class="alerts-stream">
+                    <div class="alert-item critical">
+                        <div class="alert-item-header">
+                            <span class="alert-item-title">🚨 Severe Smog Influx &bull; North-Westerly Plume Transport</span>
+                            <span class="alert-item-time">10:15 IST (Demonstration Stream)</span>
+                        </div>
+                        <div class="alert-item-detail">
+                            Thermal satellite telemetry indicates 1,684 active fires across Punjab &amp; Haryana. NW winds at 11.5 km/h combined with nocturnal boundary layer drop (&lt;250m) are projected to push Delhi AQI past 440 by midnight.
+                        </div>
+                        <span class="alert-item-action">Recommended Action: Enforce GRAP Stage III preemptive bans on polluting 4-wheelers; advise vulnerable groups to stay indoors.</span>
+                    </div>
+
+                    <div class="alert-item warning">
+                        <div class="alert-item-header">
+                            <span class="alert-item-title">⚠️ Temperature Inversion &amp; Nocturnal Trapping Alert</span>
+                            <span class="alert-item-time">09:40 IST (Demonstration Stream)</span>
+                        </div>
+                        <div class="alert-item-detail">
+                            Planetary boundary layer height forecasted to compress to 175m at 04:00 IST. Pollutants from agricultural residue fires and urban traffic will remain concentrated near ground level.
+                        </div>
+                        <span class="alert-item-action">Recommended Action: Deploy mist cannons and water sprinklers along Ring Road, Anand Vihar, and Bawana corridors.</span>
+                    </div>
+
+                    <div class="alert-item advisory">
+                        <div class="alert-item-header">
+                            <span class="alert-item-title">ℹ️ High PM2.5 Respiratory Exposure Advisory</span>
+                            <span class="alert-item-time">08:00 IST (Demonstration Stream)</span>
+                        </div>
+                        <div class="alert-item-detail">
+                            Ambient PM2.5 levels exceed 230 µg/m³ (15 times WHO safe standards). Asthma and cardiac patients must avoid outdoor morning exercise.
+                        </div>
+                        <span class="alert-item-action">Recommended Action: Wear certified N95 masks outdoors; operate HEPA purifiers in closed residential quarters.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================================
+             TAB 5: Policy & Mitigation Simulator
+             ========================================================================= -->
+        <section id="tab-mitigation" class="tab-panel">
+            <div class="card" style="margin-bottom:20px;">
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">🌱 Stubble Burning Policy &amp; Technology Intervention Simulator</h2>
+                        <p class="card-subtitle">Quantify the public health and air quality return-on-investment from targeted agricultural subsidies</p>
+                    </div>
+                </div>
+                <div class="advisory-grid">
+                    <div class="advisory-box">
+                        <div class="advisory-box-title">🚜 In-Situ Machinery (Happy Seeder &amp; Super SMS)</div>
+                        <p class="advisory-box-text">
+                            Equipping combine harvesters with Super Straw Management Systems (SMS) and using Happy Seeders allows direct wheat planting without parali burning.
+                            <br><br>
+                            <strong>Impact:</strong> Each 10% increase in machine adoption prevents ~180 active fires daily and reduces downwind PM2.5 by ~12 µg/m³.
+                        </p>
+                    </div>
+                    <div class="advisory-box">
+                        <div class="advisory-box-title">🧪 Pusa Bio-Decomposer Spraying</div>
+                        <p class="advisory-box-text">
+                            Fungal bio-capsules developed by ICAR-IARI degrade paddy straw into natural manure in 20-25 days when sprayed with urea water.
+                            <br><br>
+                            <strong>Impact:</strong> Low-cost biological solution for smallholder farmers; prevents soil nutrient loss and nitrogen emissions.
+                        </p>
+                    </div>
+                    <div class="advisory-box">
+                        <div class="advisory-box-title">⚡ Ex-Situ Biomass Pelletization &amp; Power</div>
+                        <p class="advisory-box-text">
+                            Baling paddy straw and transporting it to thermal power plants for 5-10% co-firing, bio-CNG plants, and commercial cardboard packaging factories.
+                            <br><br>
+                            <strong>Impact:</strong> Converts agricultural waste into economic revenue for farmers while completely eliminating open-air field combustion.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- What-if Comparison Matrix -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">📊 Projected Outcomes Under Scaled Policy Interventions</h3>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left;">
+                        <thead>
+                            <tr style="border-bottom:2px solid var(--border-highlight);color:#94a3b8;">
+                                <th style="padding:10px 14px;">Policy Intervention Level</th>
+                                <th style="padding:10px 14px;">Farm Fires Prevented</th>
+                                <th style="padding:10px 14px;">Delhi PM2.5 Delta</th>
+                                <th style="padding:10px 14px;">Predicted AQI</th>
+                                <th style="padding:10px 14px;">GRAP Tier</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom:1px solid var(--border-color);">
+                                <td style="padding:12px 14px;color:#ff5722;font-weight:600;">Status Quo (No Additional Interventions)</td>
+                                <td style="padding:12px 14px;">0</td>
+                                <td style="padding:12px 14px;font-family:monospace;">Baseline (+82 µg/m³)</td>
+                                <td style="padding:12px 14px;font-family:monospace;color:#ff3d00;font-weight:700;">382 (Very Poor)</td>
+                                <td style="padding:12px 14px;"><span class="badge grap-stage-ii">Stage II</span></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid var(--border-color);">
+                                <td style="padding:12px 14px;color:#cbd5e1;">50% Machinery Subsidy &amp; Free Bio-Decomposer</td>
+                                <td style="padding:12px 14px;color:#00e676;">~720 fires/day</td>
+                                <td style="padding:12px 14px;font-family:monospace;color:#00e676;">-38 µg/m³</td>
+                                <td style="padding:12px 14px;font-family:monospace;color:#ffd600;font-weight:700;">310 (Very Poor)</td>
+                                <td style="padding:12px 14px;"><span class="badge grap-stage-ii">Stage II (Border)</span></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid var(--border-color);">
+                                <td style="padding:12px 14px;color:#cbd5e1;">85% High In-Situ + Universal Ex-Situ Baling</td>
+                                <td style="padding:12px 14px;color:#00e676;">~1,350 fires/day</td>
+                                <td style="padding:12px 14px;font-family:monospace;color:#00e676;">-68 µg/m³</td>
+                                <td style="padding:12px 14px;font-family:monospace;color:#00e676;font-weight:700;">224 (Poor)</td>
+                                <td style="padding:12px 14px;"><span class="badge" style="background:rgba(255,145,0,0.15);color:#ff9100">Stage I</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================================
+             TAB 6: Methodology & CPCB Scale
+             ========================================================================= -->
+        <section id="tab-transparency" class="tab-panel">
+            <div class="card" style="margin-bottom:20px;">
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">📖 Atmospheric Dispersion Science &amp; CPCB AQI Standards</h2>
+                        <p class="card-subtitle">Transparent mathematical and regulatory framework for air quality assessment</p>
+                    </div>
+                </div>
+                <div style="font-size:13px;line-height:1.7;color:#cbd5e1;">
+                    <p style="margin-bottom:12px;">
+                        The Indian National Air Quality Index (AQI) is defined by the <strong>Central Pollution Control Board (CPCB)</strong> under the Ministry of Environment, Forest and Climate Change. The sub-index for PM2.5 is determined via piecewise linear interpolation between established regulatory breakpoints:
+                    </p>
+                    <div style="background:rgba(0,0,0,0.3);padding:14px;border-radius:var(--radius-sm);margin-bottom:16px;font-family:monospace;font-size:12px;color:#38bdf8;">
+                        AQI = [ (I_high - I_low) / (BP_high - BP_low) ] &times; (C_PM2.5 - BP_low) + I_low
+                    </div>
+
+                    <!-- Breakpoints Table -->
+                    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+                        <thead>
+                            <tr style="border-bottom:2px solid var(--border-color);color:#94a3b8;font-size:12px;">
+                                <th style="padding:8px;text-align:left;">AQI Range</th>
+                                <th style="padding:8px;text-align:left;">Category</th>
+                                <th style="padding:8px;text-align:left;">PM2.5 24h (µg/m³)</th>
+                                <th style="padding:8px;text-align:left;">Color Representation</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size:12px;">
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px;">0 – 50</td><td style="padding:8px;color:#00e676;font-weight:600;">Good</td><td style="padding:8px;">0 – 30</td><td style="padding:8px;"><span style="display:inline-block;width:30px;height:12px;background:#00e676;border-radius:2px;"></span></td></tr>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px;">51 – 100</td><td style="padding:8px;color:#aeea00;font-weight:600;">Satisfactory</td><td style="padding:8px;">31 – 60</td><td style="padding:8px;"><span style="display:inline-block;width:30px;height:12px;background:#aeea00;border-radius:2px;"></span></td></tr>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px;">101 – 200</td><td style="padding:8px;color:#ffd600;font-weight:600;">Moderate</td><td style="padding:8px;">61 – 90</td><td style="padding:8px;"><span style="display:inline-block;width:30px;height:12px;background:#ffd600;border-radius:2px;"></span></td></tr>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px;">201 – 300</td><td style="padding:8px;color:#ff9100;font-weight:600;">Poor</td><td style="padding:8px;">91 – 120</td><td style="padding:8px;"><span style="display:inline-block;width:30px;height:12px;background:#ff9100;border-radius:2px;"></span></td></tr>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px;">301 – 400</td><td style="padding:8px;color:#ff3d00;font-weight:600;">Very Poor</td><td style="padding:8px;">121 – 250</td><td style="padding:8px;"><span style="display:inline-block;width:30px;height:12px;background:#ff3d00;border-radius:2px;"></span></td></tr>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px;">401 – 500</td><td style="padding:8px;color:#d50000;font-weight:600;">Severe</td><td style="padding:8px;">251 – 350</td><td style="padding:8px;"><span style="display:inline-block;width:30px;height:12px;background:#d50000;border-radius:2px;"></span></td></tr>
+                            <tr><td style="padding:8px;">501+</td><td style="padding:8px;color:#ba68c8;font-weight:600;">Severe+ / Emergency</td><td style="padding:8px;">350+</td><td style="padding:8px;"><span style="display:inline-block;width:30px;height:12px;background:#4a148c;border-radius:2px;"></span></td></tr>
+                        </tbody>
+                    </table>
+
+                    <h4 style="color:#ffffff;margin-bottom:8px;">🛰️ Satellite Fire Detection &amp; FRP Physics</h4>
+                    <p style="margin-bottom:12px;">
+                        Thermal anomalies are detected in the 3.9 µm and 11 µm mid-infrared channels aboard NASA's S-NPP / NOAA-20 VIIRS instruments (375m spatial resolution). <strong>Fire Radiative Power (FRP)</strong> in megawatts (MW) measures the instantaneous radiant heat energy output, which correlates directly with crop biomass combustion rates ($\sim 0.368 \pm 0.015 \text{ kg/MJ}$).
+                    </p>
+
+                    <h4 style="color:#ffffff;margin-bottom:8px;">🔬 Data Provenance &amp; Simulation Notice</h4>
+                    <p>
+                        This platform operates completely offline in local simulation mode. All charts, maps, particle physics, and predictions are computed directly inside your browser without any external network calls or server dependencies.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer style="margin-top:40px;text-align:center;font-size:12px;color:var(--text-muted);border-top:1px solid var(--border-color);padding-top:20px;">
+            <p>AgriSmoke AI &bull; Indo-Gangetic Crop Burning &amp; Urban Air Quality Prediction System &bull; Local Standalone Version</p>
+            <p style="margin-top:4px;">Works offline in Microsoft Edge directly via <code>file:///</code> protocol with zero external installations.</p>
+        </footer>
+    </div>
+
+    <!-- Interactive Item Modal Dialog -->
+    <div id="detail-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-title" class="modal-title">Station Details</h3>
+                <button id="modal-close" class="modal-close-btn" aria-label="Close modal">&times;</button>
+            </div>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <!-- Chart Tooltip -->
+    <div id="chart-tooltip" class="floating-tooltip"></div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts (Ordered for clean dependency-free execution) -->
+    <script src="js/demo-data.js"></script>
+    <script src="js/prediction-model.js"></script>
+    <script src="js/map-engine.js"></script>
+    <script src="js/charts-engine.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
